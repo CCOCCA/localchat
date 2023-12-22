@@ -19,7 +19,6 @@ import 'package:localchat/web/components/web_file_message.dart';
 import 'package:localchat/web/services/web_websocket_service.dart';
 import 'package:localchat/web/web_common.dart' as common;
 import 'package:pasteboard/pasteboard.dart';
-import 'package:path/path.dart' as p;
 
 class WebConversationMsgBox extends ConsumerStatefulWidget {
   const WebConversationMsgBox({Key? key}) : super(key: key);
@@ -34,6 +33,7 @@ class WebConversationMsgBoxState extends ConsumerState<WebConversationMsgBox> {
   late TextEditingController _inputController;
   late ScrollController _scrollController;
   late FocusNode _textFocusNode;
+  late int textMaxLength;
   bool filePickerOpen = false;
   bool isEmojiShowing = false;
   bool isTextFiledClearButtonShowing = false;
@@ -45,6 +45,8 @@ class WebConversationMsgBoxState extends ConsumerState<WebConversationMsgBox> {
     _textFocusNode = FocusNode();
     _inputController = TextEditingController();
     _scrollController = ScrollController();
+    int windowsWidth = window.innerWidth ?? 350;
+    textMaxLength = windowsWidth - 160;
     // _selectionController = TextSelectionControls();
   }
 
@@ -237,7 +239,7 @@ class WebConversationMsgBoxState extends ConsumerState<WebConversationMsgBox> {
     ref.read(messagesNotifierProvider.notifier).add(message);
     Uri uri = Uri.parse('${common.address}/${utils.ossApiPath()}');
     try {
-      if (file.size > 1024 * 1024 * 10) {
+      if (file.size > 1024 * 1024) {
         // segmented upload
         common.logI('${file.name} is ${(file.size / 1024 / 1024).floor()}MB');
         headerMap['file-total-length'] = file.size.toString();
@@ -378,44 +380,40 @@ class WebConversationMsgBoxState extends ConsumerState<WebConversationMsgBox> {
           image:
               AssetImage(isSelf ? 'assets/images/avatarMan.jpg' : fellowAvtar)),
     );
-    // var senderName = Text.rich(TextSpan(children: [
-    //   TextSpan(
-    //     text: isSelf ? '  $name' : '$name  ',
-    //     style: const TextStyle(
-    //       fontWeight: FontWeight.bold,
-    //     ),
-    //   ),
-    // ]));
     var copyButton = Container(
-      margin: const EdgeInsets.all(10.0),
-      constraints: const BoxConstraints(maxWidth: 600),
+      // margin: const EdgeInsets.only(top: 10.0),
+      constraints: const BoxConstraints(maxWidth: 30),
       child: IconButton(
         icon: const Icon(Icons.copy),
         tooltip: '复制',
         onPressed: () {
           Clipboard.setData(ClipboardData(text: content)).then((_) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text("已复制到剪贴板"),
-              duration: Duration(seconds: 2),
-              backgroundColor: Color(0x202196f3),
-              showCloseIcon: true,
-            ));
+            utils.showSnackBar(
+                context,
+                const Center(
+                    child: Text(
+                  "已复制聊天内容",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.blue,
+                  ),
+                )));
           });
         },
       ),
     );
     var messageText = Container(
       margin: const EdgeInsets.all(5.0),
-      constraints: const BoxConstraints(maxWidth: 600),
+      constraints: BoxConstraints(maxWidth: textMaxLength.toDouble()),
       decoration: BoxDecoration(
         color: isSelf ? const Color(0xFF95EC69) : null,
         borderRadius: const BorderRadius.all(Radius.circular(4.0)),
-        border: Border.all(width: 8, color: Colors.white),
       ),
       child: Text(
         content,
+        softWrap: true,
         style: const TextStyle(
-          fontSize: 20,
+          fontSize: 16,
         ),
       ),
     );

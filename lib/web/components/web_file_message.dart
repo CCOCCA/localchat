@@ -28,6 +28,7 @@ class WebFileMessageState extends ConsumerState<WebFileMessage> {
   String fileUrl = '';
   String fileName = '';
   String filePath = '';
+  late int textMaxLength;
   MainAxisAlignment align = MainAxisAlignment.start;
 
   @override
@@ -40,6 +41,8 @@ class WebFileMessageState extends ConsumerState<WebFileMessage> {
     fileUrl = '${common.address}/$filePath';
     fileName = p.basename(filePath);
     align = widget.isSelf ? MainAxisAlignment.end : MainAxisAlignment.start;
+    int windowsWidth = window.innerWidth ?? 350;
+    textMaxLength = windowsWidth - 130;
   }
 
   @override
@@ -59,21 +62,19 @@ class WebFileMessageState extends ConsumerState<WebFileMessage> {
               ? 'assets/images/avatarMan.jpg'
               : 'assets/images/avatarMan.jpg')),
     );
-    Container? progressIndicator;
+    ProgressIndicator? progressIndicator;
     if (msgProgressMap[widget.msg.msgId] != null) {
-      progressIndicator = Container(
-        margin: const EdgeInsets.only(top: 18.0),
-        child: CircularProgressIndicator(
-          backgroundColor: Colors.grey[200],
-          valueColor: const AlwaysStoppedAnimation(Colors.blue),
-          value: msgProgressMap[widget.msg.msgId],
-        ),
+      progressIndicator = CircularProgressIndicator(
+        backgroundColor: Colors.grey[200],
+        valueColor: const AlwaysStoppedAnimation(Colors.red),
+        strokeWidth: 1,
+        value: msgProgressMap[widget.msg.msgId],
       );
     }
 
     var messageText = Container(
         margin: const EdgeInsets.all(5.0),
-        constraints: const BoxConstraints(maxWidth: 600),
+        constraints: BoxConstraints(maxWidth: textMaxLength.toDouble()),
         decoration: const BoxDecoration(
           // color: widget.isSelf ? const Color(0xFF95EC69) : null,
           borderRadius: BorderRadius.all(Radius.circular(4.0)),
@@ -82,32 +83,37 @@ class WebFileMessageState extends ConsumerState<WebFileMessage> {
         child: Column(
           children: [
             FloatingActionButton.extended(
-                icon: const Icon(Icons.file_open),
-                tooltip: _tooltip(),
-                onPressed: () {
+              icon: progressIndicator ?? const Icon(Icons.file_open),
+              tooltip: _tooltip(),
+              onPressed: () {
+                // if file is send by myself, click is useless.
+                if (!widget.isSelf) {
+                  // if file is other user's, download it
                   try {
                     _downloadFile(fileUrl, fileName);
                   } catch (e) {
                     common.logE('download file $fileUrl failed, error: e');
                   }
-                },
-                label: Text(fileName)),
+                }
+              },
+              label: SizedBox(
+                width: textMaxLength.toDouble() - 50,
+                child: Text(
+                  fileName,
+                  style: const TextStyle(fontSize: 14),
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
           ],
         ));
     return Row(
       mainAxisAlignment: align,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: widget.isSelf
-          ? [
-              if (progressIndicator != null) progressIndicator,
-              messageText,
-              senderAvatar
-            ]
-          : [
-              senderAvatar,
-              messageText,
-              if (progressIndicator != null) progressIndicator,
-            ],
+          ? [messageText, senderAvatar]
+          : [senderAvatar, messageText],
     );
   }
 
