@@ -74,14 +74,15 @@ class ConversationMessageBoxState
         child: SelectionArea(
       child: Column(
         children: [
-          _buildMessageShowWidget(renderMessages),
+          _buildMessageShowWidget(renderMessages, context),
           _buildMessageInputRow(context),
         ],
       ),
     ));
   }
 
-  Widget _buildMessageShowWidget(List<String> renderMessages) {
+  Widget _buildMessageShowWidget(
+      List<String> renderMessages, BuildContext context) {
     _scrollToBottom();
     return Expanded(
         child: ListView.builder(
@@ -89,7 +90,7 @@ class ConversationMessageBoxState
       controller: _scrollController,
       itemCount: renderMessages.length,
       itemBuilder: (context, index) {
-        return renderMessage(getMsg(renderMessages[index])!);
+        return renderMessage(getMsg(renderMessages[index])!, context);
       },
     ));
   }
@@ -267,12 +268,17 @@ class ConversationMessageBoxState
   }
 
   // 渲染消息， 用于抽象不同消息类型的展示
-  Widget renderMessage(MessageModelData msg) {
+  Widget renderMessage(MessageModelData msg, BuildContext context) {
     var isSelf = msg.senderID == Config().selfId;
     switch (ContentType.values[msg.contentType!]) {
       case ContentType.text:
         var contentStr = utf8.decode(msg.content!);
-        return _renderTextMsg(msg.senderNickname!, contentStr, isSelf: isSelf);
+        return _renderTextMsg(
+          msg.senderNickname!,
+          contentStr,
+          context,
+          isSelf: isSelf,
+        );
       // case ContentType.image:
       //   break;
       case ContentType.file:
@@ -292,7 +298,8 @@ class ConversationMessageBoxState
   ///
   /// if isSelf is true, the message will be rendered on the right side,
   /// otherwise on the left side
-  Row _renderTextMsg(String name, String content, {bool isSelf = false}) {
+  Row _renderTextMsg(String name, String content, BuildContext context,
+      {bool isSelf = false}) {
     String fellowAvtar = 'assets/images/avatarMan.jpg';
     var align = isSelf ? MainAxisAlignment.end : MainAxisAlignment.start;
     var senderAvatar = Container(
@@ -312,7 +319,6 @@ class ConversationMessageBoxState
       ),
     ]));
     var copyButton = Container(
-      margin: const EdgeInsets.only(top: 10.0),
       constraints: const BoxConstraints(maxWidth: 600),
       child: IconButton(
         icon: const Icon(Icons.copy),
@@ -326,29 +332,36 @@ class ConversationMessageBoxState
                   "已复制聊天内容",
                   style: TextStyle(
                       fontSize: 16,
-                      color: Colors.black,
+                      color: Colors.white,
                       fontWeight: FontWeight.normal),
                 )));
           });
         },
       ),
     );
+    const messageBackgroundColor = Colors.white12;
     var messageText = Container(
-      margin: const EdgeInsets.only(top: 5.0),
       constraints: const BoxConstraints(maxWidth: 600),
-      decoration: BoxDecoration(
-        color: const Color(0xFF95EC69),
-        borderRadius: const BorderRadius.all(Radius.circular(4.0)),
-        border: Border.all(width: 8, color: Colors.white),
+      decoration: const ShapeDecoration(
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: messageBackgroundColor, width: 1),
+          borderRadius: BorderRadius.all(Radius.circular(10.0)),
+        ),
+        shadows: [
+          BoxShadow(
+            color: messageBackgroundColor,
+            blurRadius: 10.0,
+          ),
+        ],
       ),
       child: Text(
-        content,
+        '  $content  ',
         style: const TextStyle(fontSize: 20),
       ),
     );
     return Row(
       mainAxisAlignment: align,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: isSelf
           ? [copyButton, messageText, senderAvatar]
           : [senderAvatar, messageText, copyButton],
